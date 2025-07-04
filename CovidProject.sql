@@ -6,16 +6,6 @@ UPDATE covidvaccinations
 SET date = STR_TO_DATE(date, '%m/%d/%Y');
 
 #00. Format the blanks to NULL 
-UPDATE coviddeaths
-SET total_deaths = CASE WHEN total_deaths = '' THEN NULL ELSE total_deaths END;
-#WHERE continent IS NOT NULL --> Exclude: World, Asia,...
-
-UPDATE coviddeaths
-SET continent = CASE WHEN continent = '' THEN NULL ELSE continent END;
-
-UPDATE covidvaccinations
-SET total_deaths = CASE WHEN total_deaths = '' THEN NULL ELSE total_deaths END;
-
 UPDATE covidvaccinations
 SET 
   new_tests = NULLIF(new_tests, ''),
@@ -60,8 +50,6 @@ SET
   weekly_hosp_admissions = NULLIF(weekly_hosp_admissions, ''),
   weekly_hosp_admissions_per_million = NULLIF(weekly_hosp_admissions_per_million, '');
 
-
-#1. Seclect data that we are going to be using
 SELECT location, date, total_cases, new_cases, total_deaths, population
 FROM coviddeaths
 WHERE continent IS NOT NULL
@@ -96,7 +84,7 @@ WHERE continent IS NOT NULL
 GROUP BY location
 ORDER BY total_death_count DESC;
 
-###  Breaks things down by CONTINENT (The same with location above but GROUP BY continent)
+###  Breaks things down by CONTINENT
 
 #6. Showing continents with the highest death count per population
 SELECT continent, max(cast(total_deaths as SIGNED)) AS total_death_count
@@ -140,7 +128,7 @@ JOIN covidvaccinations vac
 WHERE dea.continent IS NOT NULL 
 ORDER BY 2,3;
 
-#10. Tổng vaccinations của mỗi location
+#10. Total vaccinations by Location
 SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations, SUM(CAST(vac.new_vaccinations AS SIGNED)) OVER (Partition by dea.location). # --> SUM tất cả vaccinations của each location (Partition by)
 FROM coviddeaths dea
 JOIN covidvaccinations vac
@@ -149,7 +137,7 @@ JOIN covidvaccinations vac
 WHERE dea.continent IS NOT NULL 
 ORDER BY 2,3;
 
-#11. Showing the Rolling Count Tính tổng vaccinations sau mỗi ngày by locations, date. VD: ngày 1 : 2 vaccinations ; ngày 2: 3 vaccinations --> đưa kết quả là 3 in ngày 2
+#11. Showing the Rolling Count of Vaccinations by Location and Date
 
 SELECT dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations, SUM(CAST(vac.new_vaccinations AS SIGNED)) OVER (Partition by dea.location ORDER BY dea.location, dea.date) AS rolling_people_vaccinated # --> Rolling Count
 #Lấy max number của rolling count của mỗi country chia cho population của country đó (rolling_people_vaccinations / population)*100 --> Nhưng vì vừa tạo nó ra nên không thể dùng luôn --> Use CTE / Temp Table?
@@ -238,13 +226,11 @@ SUM(CAST(vac.new_vaccinations AS SIGNED)) OVER (
  Partition by dea.location 
  ORDER BY dea.location, dea.date
  ) AS rolling_people_vaccinated # --> Rolling Count
-#Lấy max number của rolling count của mỗi country chia cho population của country đó (rolling_people_vaccinations / population)*100 --> Nhưng vì vừa tạo nó ra nên không thể dùng luôn --> Use CTE / Temp Table?
 FROM coviddeaths dea
 JOIN covidvaccinations vac
  ON dea.location = vac.location
  AND dea.date = vac.date
 WHERE dea.continent is not null;
-#ORDER BY 2,3;
 
 SELECT * FROM percenpopulationvaccinated;
 
